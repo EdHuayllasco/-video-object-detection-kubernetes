@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: yolo-processor
+spec:
+  containers:
+  - name: yolo-container
+    image: yolo-processor:latest
+    imagePullPolicy: IfNotPresent
+    volumeMounts:
+    - mountPath: /app/videos
+      name: video-storage
+  volumes:
+  - name: video-storage
+    persistentVolumeClaim:
+      claimName: video-storage-claim
+  restartPolicy: Never
