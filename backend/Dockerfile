@@ -1,16 +1,19 @@
-FROM node:18-slim
+# Usa una imagen base de Node.js
+FROM node:18
 
-# Crea el directorio de la aplicación
+# Establece el directorio de trabajo en el contenedor
 WORKDIR /app
 
-# Copia el package.json e instala las dependencias
+# Copia los archivos de configuración del backend
 COPY package*.json ./
+
+# Instala las dependencias
 RUN npm install
 
-# Copia el resto de los archivos
+# Copia el resto del código
 COPY . .
 
-# Exponer el puerto
+# Expone el puerto donde corre tu app
 EXPOSE 3000
 
 # Comando para iniciar el servidor

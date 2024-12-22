@@ -2,23 +2,63 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 
 interface LabelViewerProps {
-  video: string;
+  video: string; // Nombre base del video
 }
 
+interface ClassData {
+  class: number; // Número de la clase
+}
+
+const classMapping: { [key: number]: string } = {
+  0: "Car",
+  1: "Motorbike",
+  2: "Person",
+};
+
 const LabelViewer: React.FC<LabelViewerProps> = ({ video }) => {
-  const [labels, setLabels] = useState<string>("");
+  const [classes, setClasses] = useState<ClassData[]>([]);
 
   useEffect(() => {
+    // Llama al endpoint y extrae la propiedad 'classes' de la respuesta
     axios
-      .get<string>(`http://localhost:3000/labels/${video}`)
-      .then((response) => setLabels(response.data))
-      .catch((error) => console.error("Error al obtener los labels:", error));
+      .get<{ videoId: number; classes: ClassData[] }>(
+        `http://localhost:30080/labels/${video}`
+      )
+      .then((response) => {
+        setClasses(response.data.classes); // Guarda solo la propiedad 'classes'
+      })
+      .catch((error) => console.error("Error al obtener las clases:", error));
   }, [video]);
 
   return (
     <div>
-      <h2>Labels Generados</h2>
-      <pre>{labels}</pre>
+      <h2>Clases Generadas</h2>
+      {classes.length === 0 ? (
+        <p>No se encontraron clases para este video.</p>
+      ) : (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {classes.map((item, index) => (
+            <li key={index} style={{ marginBottom: "0.5rem" }}>
+              <button
+                onClick={() =>
+                  alert(`Has hecho clic en: ${classMapping[item.class]}`)
+                }
+                style={{
+                  padding: "0.5rem 1rem",
+                  backgroundColor: "#4CAF50",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "5px",
+                  cursor: "pointer",
+                  fontSize: "1rem",
+                }}
+              >
+                {classMapping[item.class] || "Clase Desconocida"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

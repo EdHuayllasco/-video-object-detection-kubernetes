@@ -6,11 +6,13 @@ interface VideoPlayerProps {
 }
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
-  const videoUrl = `http://localhost:3000/videos/${video}`; // Ruta completa del video desde el backend
+  const sanitizedVideoName = video.replace(/\.mp4$/, ".avi"); 
+  const videoUrl = `http://a9cc9376789394999978f948dffe9b8f-387308753.us-east-1.elb.amazonaws.com/videos/${sanitizedVideoName}`; // Ruta completa del video desde el backend
+  console.log(videoUrl);
 
   return (
     <div>
-      <h2>Reproduciendo: {video}</h2>
+      <h2>Reproduciendo: {sanitizedVideoName}</h2>
       <ReactPlayer
         url={videoUrl} // URL del video
         controls={false} // Desactiva los controles (barra de tiempo)
