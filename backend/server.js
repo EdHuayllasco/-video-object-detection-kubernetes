@@ -2,45 +2,93 @@ const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const pool = require('./bd.js');
 
 const app = express();
 const PORT = 3000;
 
 // Permitir solicitudes CORS
 app.use(cors());
-
-// Ruta para obtener la lista de videos procesados
-app.get("/videos", (req, res) => {
-  const videoDir = path.join(__dirname, "../viratvideos/results/predict");
-  fs.readdir(videoDir, (err, files) => {
-    if (err) {
-      return res.status(500).json({ error: "Error al leer los videos procesados" });
+const videoDirectory = "/app/videos/results/predict";
+// Endpoint para obtener todos los videos
+app.get('/videos', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM videos'); // Consulta a la base de datos
+        res.json(result.rows); // Devuelve los datos en formato JSON
+    } catch (err) {
+        console.error('Error ejecutando la consulta:', err);
+        res.status(500).json({ error: 'Error al obtener los videos' }); // Devuelve un error en caso de fallo
     }
-    const videos = files.filter((file) => file.endsWith(".mp4") || file.endsWith(".avi"));
-    res.json(videos);
-  });
 });
 
 // Ruta para servir un video procesado
 app.get("/videos/:video", (req, res) => {
-  const { video } = req.params;
-  const videoPath = path.join(__dirname, "../viratvideos/results/predict", video);
-  res.sendFile(videoPath);
-});
+    let { video } = req.params;
 
-// Ruta para obtener los labels de un video
-app.get("/labels/:video", (req, res) => {
-  const { video } = req.params;
-  const videoName = path.parse(video).name; // Sin extensión
-  const labelPath = path.join(__dirname, "../viratvideos/results/predict/labels", `${videoName}.txt`);
-  if (!fs.existsSync(labelPath)) {
-    return res.status(404).json({ error: "Labels no encontrados" });
-  }
-  const labels = fs.readFileSync(labelPath, "utf-8");
-  res.send(labels);
+    // Reemplazar la extensión .mp4 por .avi
+    const videoBaseName = path.parse(video).name; // Nombre base sin extensión
+    const newVideoName = `${videoBaseName}.avi`; // Reemplazar con .avi
+
+    console.log("Nombre del video solicitado:", newVideoName);
+
+    const videoPath = path.join(videoDirectory, newVideoName);
+
+    // Comprueba si el archivo existe y lo envía
+    if (fs.existsSync(videoPath)) {
+        res.sendFile(videoPath);
+    } else {
+        res.status(404).json({ error: "Archivo no encontrado." });
+    }
+});
+// Ruta para obtener labels y clases únicas asociadas desde la base de datos
+app.get("/labels/:video", async (req, res) => {
+    const { video } = req.params;
+
+    // Obtener el nombre base del video (sin extensión)const videoBaseName = path.parse(video).name;
+
+    try {
+        // Paso 1: Buscar el video en la tabla 'videos' y obtener su ID
+        const videoQuery = 'SELECT id FROM videos WHERE name = $1';
+        const videoResult = await pool.query(videoQuery, [video]);
+
+        if (videoResult.rows.length === 0) {
+            return res.status(404).json({ error: "Video no encontrado en la base de datos." });
+        }
+
+        const videoId = videoResult.rows[0].id;
+
+        // Paso 2: Obtener clases únicas asociadas al video desde 'class_intervals'
+        const classesQuery = `
+        SELECT DISTINCT ON (class) class, start_frame, end_frame
+        FROM class_intervals
+        WHERE video_id = $1
+        ORDER BY class, start_frame ASC
+        `;
+        const classesResult = await pool.query(classesQuery, [videoId]);
+
+        if (classesResult.rows.length === 0) {
+            return res.status(404).json({ error: "No se encontraron clases para este video." });
+        }
+
+        // Mapear resultados para enviar clases únicas
+        const uniqueClasses = classesResult.rows.map(row => ({
+            class: row.class,
+            start_frame: row.start_frame,
+            end_frame: row.end_frame
+        }));
+
+        // Enviar la respuesta con las clases únicas
+        res.json({
+            videoId: videoId,
+            classes: uniqueClasses
+        });
+    } catch (error) {
+        console.error("Error al obtener las clases desde la base de datos:", error);
+        res.status(500).json({ error: "Error al procesar los datos." });
+    }
 });
 
 // Iniciar el servidor
 app.listen(PORT, () => {
-  console.log(`Backend escuchando en http://localhost:${PORT}`);
+    console.log(`Backend escuchando en http://localhost:${PORT}`);
 });

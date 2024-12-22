@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: process-videos
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: process-videos
+  template:
+    metadata:
+      labels:
+        app: process-videos
+    spec:
+      containers:
+      - name: process-videos
+        image: 140023402256.dkr.ecr.us-east-1.amazonaws.com/yoloprocessor:latest
+        env:
+        - name: DB_NAME
+          value: "viratdata"
+        - name: DB_USER
+          value: "root"
+        - name: DB_PASSWORD
+          value: "root1997+"
+        - name: DB_HOST
+          value: "dbcluster.c9yee2e0yxjp.us-east-1.rds.amazonaws.com"
+        - name: DB_PORT
+          value: "5432"
+        - name: S3_BUCKET
+          value: "viratvideos"
+        - name: S3_REGION
+          value: "us-east-1"

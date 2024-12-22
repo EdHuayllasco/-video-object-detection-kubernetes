@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: 140023402256.dkr.ecr.us-east-1.amazonaws.com/backendcontainer:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DB_HOST
+              value: "dbcluster.c9yee2e0yxjp.us-east-1.rds.amazonaws.com"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_USER
+              value: "root"
+            - name: DB_PASSWORD
+              value: "root1997+"
+            - name: DB_NAME
+              value: "viratdata"

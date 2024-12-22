@@ -1,2 +1,4 @@
 ultralytics
 opencv-python
+psycopg2-binary
+boto3
