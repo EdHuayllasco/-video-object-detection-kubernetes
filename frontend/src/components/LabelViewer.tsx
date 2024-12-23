@@ -22,7 +22,7 @@ const LabelViewer: React.FC<LabelViewerProps> = ({ video }) => {
     // Llama al endpoint y extrae la propiedad 'classes' de la respuesta
     axios
       .get<{ videoId: number; classes: ClassData[] }>(
-        `http://localhost:30080/labels/${video}`
+        `http://a9cc9376789394999978f948dffe9b8f-387308753.us-east-1.elb.amazonaws.com/labels/${video}`
       )
       .then((response) => {
         setClasses(response.data.classes); // Guarda solo la propiedad 'classes'

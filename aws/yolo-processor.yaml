@@ -30,3 +30,10 @@ spec:
           value: "viratvideos"
         - name: S3_REGION
           value: "us-east-1"
+        resources:
+          requests:
+            cpu: 1          # Reserva 0.5 núcleos como mínimo
+            memory: 2Gi        # Reserva 1 GiB de memoria como mínimo
+          limits:
+            cpu: 1          # Límite máximo de 1 núcleo
+            memory: 10Gi        # Límite máximo de 2 GiB de memoria

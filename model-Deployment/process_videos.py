@@ -13,22 +13,16 @@ DB_CONFIG = {
     "port": os.getenv("DB_PORT", "5432"),
 }
 
-# Configuración del bucket S3
+# Inicializar el cliente de S3
 S3_BUCKET = "viratvideos"  # Reemplaza con el nombre de tu bucket
 S3_REGION = "us-east-1"  # Reemplaza con tu región
-
-# Inicializar el cliente de S3
 s3 = boto3.client("s3", region_name=S3_REGION)
 
 # Directorio temporal para guardar videos descargados
 temp_video_path = "/tmp/videos"
-output_path = "/tmp/results"  # Resultados locales antes de subir a S3
 
 if not os.path.exists(temp_video_path):
     os.makedirs(temp_video_path)
-
-if not os.path.exists(output_path):
-    os.makedirs(output_path)
 
 # Cargar el modelo YOLO
 model = YOLO("/app/best.pt")
@@ -42,36 +36,55 @@ except Exception as e:
     print(f"Error al conectar con la base de datos: {e}")
     exit()
 
-# Listar los videos desde el bucket S3
-response = s3.list_objects_v2(Bucket=S3_BUCKET)
-if "Contents" not in response:
-    print("No se encontraron videos en el bucket.")
-    exit()
+# Verificar si el video ya ha sido procesado
+def video_ya_procesado(video_name):
+    try:
+        cursor.execute("SELECT id FROM videos WHERE name = %s;", (video_name,))
+        result = cursor.fetchone()
+        return result is not None  # Si hay un resultado, el video ya fue procesado
+    except Exception as e:
+        print(f"Error al verificar si el video ya ha sido procesado: {e}")
+        return True  # Evitar procesar en caso de error
 
-# Procesar cada video en el bucket
-for obj in response["Contents"]:
-    file_key = obj["Key"]
-    if not file_key.endswith(".mp4"):
-        continue
+# Procesar un solo video basado en una URL proporcionada
+def procesar_video(video_url):
+    # Obtener el nombre del archivo desde la URL
+    video_name = os.path.basename(video_url)
+    if not video_name.endswith(".mp4"):
+        print("La URL no apunta a un archivo .mp4 válido.")
+        return
 
-    # Descargar el video desde la URL pública
-    file_url = f"https://{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/{file_key}"
-    local_file_path = os.path.join(temp_video_path, os.path.basename(file_key))
-    print(f"Descargando video: {file_url}")
-    r = requests.get(file_url, stream=True)
+    # Verificar si el video ya fue procesado
+    if video_ya_procesado(video_name):
+        print(f"El video '{video_name}' ya ha sido procesado. Saliendo.")
+        return
+
+    # Descargar el video
+    local_file_path = os.path.join(temp_video_path, video_name)
+    print(f"Descargando video: {video_url}")
+    r = requests.get(video_url, stream=True)
     with open(local_file_path, "wb") as f:
         for chunk in r.iter_content(chunk_size=8192):
             f.write(chunk)
-
-    print(f"Procesando el video: {local_file_path}")
+    print(f"Video descargado en: {local_file_path}")
 
     # Insertar el video en la base de datos
-    cursor.execute("INSERT INTO videos (name) VALUES (%s) RETURNING id;", (os.path.basename(file_key),))
-    video_id = cursor.fetchone()[0]
-    conn.commit()
-    print(f"Video registrado en la base de datos con ID: {video_id}")
+    try:
+        cursor.execute("INSERT INTO videos (name) VALUES (%s) RETURNING id;", (video_name,))
+        video_id = cursor.fetchone()[0]
+        conn.commit()
+        print(f"Video registrado en la base de datos con ID: {video_id}")
+    except Exception as e:
+        print(f"Error al insertar el video en la base de datos: {e}")
+        return
+
+    # Carpeta de resultados con el nombre del video (sin extensión)
+    output_path = os.path.join("/tmp", os.path.splitext(video_name)[0])
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     # Realizar predicción en el video
+    print(f"Procesando el video: {local_file_path}")
     results = model.predict(
         source=local_file_path,
         stream=True,
@@ -128,9 +141,13 @@ for obj in response["Contents"]:
     for root, dirs, files in os.walk(output_path):
         for file in files:
             result_file_path = os.path.join(root, file)
-            s3_key = os.path.join("results", os.path.basename(file))
+            s3_key = os.path.join(os.path.splitext(video_name)[0], os.path.basename(file))
             s3.upload_file(result_file_path, S3_BUCKET, s3_key)
             print(f"Subido: {s3_key}")
+
+# Ejemplo de uso:
+video_url = "https://viratvideos.s3.us-east-1.amazonaws.com/VIRAT_S_000202_01_001334_001520.mp4"
+procesar_video(video_url)
 
 # Cerrar la conexión a la base de datos
 cursor.close()
