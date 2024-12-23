@@ -17,7 +17,7 @@ const VideoList: React.FC = () => {
   // Efecto para obtener los datos del backend
   useEffect(() => {
     axios
-      .get<Video[]>("http://a9cc9376789394999978f948dffe9b8f-387308753.us-east-1.elb.amazonaws.com/videos") // URL del backend
+      .get<Video[]>("http://a9cb7796674ae4bbf8548c0fdbe8d423-1233048227.us-east-1.elb.amazonaws.com/videos") // URL del backend
       .then((response) => {
         setVideos(response.data); // Establece los datos obtenidos
         setError(null); // Limpia errores previos si los hay

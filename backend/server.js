@@ -9,7 +9,7 @@ const PORT = 3000;
 
 // Permitir solicitudes CORS
 app.use(cors());
-const videoDirectory = "/app/videos/results/predict";
+const baseURL = "https://viratvideos.s3.us-east-1.amazonaws.com"; // Base URL de tus videos en S3
 // Endpoint para obtener todos los videos
 app.get('/videos', async (req, res) => {
     try {
@@ -26,19 +26,16 @@ app.get("/videos/:video", (req, res) => {
     let { video } = req.params;
 
     // Reemplazar la extensión .mp4 por .avi
-    const videoBaseName = path.parse(video).name; // Nombre base sin extensión
-    const newVideoName = `${videoBaseName}.avi`; // Reemplazar con .avi
+    const videoBaseName = path.parse(video).name;
+    const newVideoName = `${videoBaseName}.avi`;
 
-    console.log("Nombre del video solicitado:", newVideoName);
+    // Construir la URL del archivo en S3
+    const videoUrl = `https://viratvideos.s3.us-east-1.amazonaws.com/${videoBaseName}/${newVideoName}`;
 
-    const videoPath = path.join(videoDirectory, newVideoName);
+    console.log("Redirigiendo al archivo en S3:", videoUrl);
 
-    // Comprueba si el archivo existe y lo envía
-    if (fs.existsSync(videoPath)) {
-        res.sendFile(videoPath);
-    } else {
-        res.status(404).json({ error: "Archivo no encontrado." });
-    }
+    // Redirigir al archivo en S3
+    res.redirect(videoUrl);
 });
 // Ruta para obtener labels y clases únicas asociadas desde la base de datos
 app.get("/labels/:video", async (req, res) => {

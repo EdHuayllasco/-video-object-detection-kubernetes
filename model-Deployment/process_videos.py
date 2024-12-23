@@ -140,13 +140,14 @@ def procesar_video(video_url):
     print(f"Subiendo resultados al bucket {S3_BUCKET}...")
     for root, dirs, files in os.walk(output_path):
         for file in files:
-            result_file_path = os.path.join(root, file)
-            s3_key = os.path.join(os.path.splitext(video_name)[0], os.path.basename(file))
-            s3.upload_file(result_file_path, S3_BUCKET, s3_key)
-            print(f"Subido: {s3_key}")
+            if file.endswith(".avi"):  # Verificar si el archivo tiene extensión .avi
+                result_file_path = os.path.join(root, file)  # Ruta completa del archivo local
+                s3_key = os.path.join(os.path.splitext(video_name)[0], os.path.basename(file))  # Clave en S3
+                s3.upload_file(result_file_path, S3_BUCKET, s3_key)  # Subida a S3
+                print(f"Subido: {s3_key}")
 
 # Ejemplo de uso:
-video_url = "https://viratvideos.s3.us-east-1.amazonaws.com/VIRAT_S_000202_01_001334_001520.mp4"
+video_url = "https://viratvideos.s3.us-east-1.amazonaws.com/VIRAT_S_010000_02_000388_000421.mp4"
 procesar_video(video_url)
 
 # Cerrar la conexión a la base de datos

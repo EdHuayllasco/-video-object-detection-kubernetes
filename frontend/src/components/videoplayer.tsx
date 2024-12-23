@@ -7,7 +7,7 @@ interface VideoPlayerProps {
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ video }) => {
   const sanitizedVideoName = video.replace(/\.mp4$/, ".avi"); 
-  const videoUrl = `http://a9cc9376789394999978f948dffe9b8f-387308753.us-east-1.elb.amazonaws.com/videos/${sanitizedVideoName}`; // Ruta completa del video desde el backend
+  const videoUrl = `http://a9cb7796674ae4bbf8548c0fdbe8d423-1233048227.us-east-1.elb.amazonaws.com/videos/${sanitizedVideoName}`; // Ruta completa del video desde el backend
   console.log(videoUrl);
 
   return (

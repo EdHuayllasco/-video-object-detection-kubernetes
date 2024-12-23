@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: process-videos
 spec:
-  replicas: 2
+  replicas: 0
   selector:
     matchLabels:
       app: process-videos
